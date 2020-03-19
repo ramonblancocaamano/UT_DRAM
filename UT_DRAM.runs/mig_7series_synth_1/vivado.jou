@@ -1,0 +1,12 @@
+#-----------------------------------------------------------
+# Vivado v2019.1 (64-bit)
+# SW Build 2552052 on Fri May 24 14:49:42 MDT 2019
+# IP Build 2548770 on Fri May 24 18:01:18 MDT 2019
+# Start of session at: Wed Mar 11 13:14:48 2020
+# Process ID: 14260
+# Current directory: C:/Users/ramon/Documents/GITHUB/UT_DRAM/UT_DRAM.runs/mig_7series_synth_1
+# Command line: vivado.exe -log mig_7series.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source mig_7series.tcl
+# Log file: C:/Users/ramon/Documents/GITHUB/UT_DRAM/UT_DRAM.runs/mig_7series_synth_1/mig_7series.vds
+# Journal file: C:/Users/ramon/Documents/GITHUB/UT_DRAM/UT_DRAM.runs/mig_7series_synth_1\vivado.jou
+#-----------------------------------------------------------
+source mig_7series.tcl -notrace
