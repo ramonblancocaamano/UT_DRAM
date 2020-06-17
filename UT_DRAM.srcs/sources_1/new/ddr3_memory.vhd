@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------
--- @FILE : dram.vhd 
+-- @FILE : ddr3_memory.vhd 
 -- @AUTHOR: BLANCO CAAMANO, RAMON. <ramonblancocaamano@gmail.com> 
 -- 
 -- @ABOUT: INTERMEDIATE VOLATILE MEMORY BETWEEN MEMORY & INTERFACE MODULES.
@@ -8,21 +8,21 @@ LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
 USE IEEE.NUMERIC_STD.ALL;
 
-ENTITY dram IS
+ENTITY ddr3_memory IS
     PORT(
         rst : IN STD_LOGIC;
         clk_81 : IN STD_LOGIC;
         clk_200 : IN STD_LOGIC;        
         din: IN STD_LOGIC_VECTOR(31 DOWNTO 0);
         dout: OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
-        rd_trigger : IN STD_LOGIC;
-        wr_trigger : OUT STD_LOGIC;
-        wr_trigger_ok : IN STD_LOGIC; 
-        wr_continue : IN STD_LOGIC;
-        wr_continue_ok : OUT STD_LOGIC;    
-        i_buff_rd_en: OUT STD_LOGIC;
-        i_buff_empty: IN STD_LOGIC;
-        o_buff_wr_en: OUT STD_LOGIC;
+        hsk_rd0 : IN STD_LOGIC;
+        hsk_rd1 : OUT STD_LOGIC;
+        hsk_rd_ok1 : IN STD_LOGIC; 
+        hsk_wr1 : IN STD_LOGIC;
+        hsk_wr_ok1 : OUT STD_LOGIC;    
+        buff_rd_en: OUT STD_LOGIC;
+        buff_empty: IN STD_LOGIC;
+        buff_wr_en: OUT STD_LOGIC;
         o_ddr_reset_n : OUT STD_LOGIC;
         o_ddr_ras_n : OUT STD_LOGIC;
         o_ddr_cas_n : OUT STD_LOGIC;
@@ -39,9 +39,9 @@ ENTITY dram IS
         io_ddr_dqs_n : INOUT STD_LOGIC_VECTOR(1 DOWNTO 0);
         io_ddr_data : INOUT STD_LOGIC_VECTOR(15 DOWNTO 0)    
     );
-END dram;
+END ddr3_memory;
 
-ARCHITECTURE behavioral OF dram IS
+ARCHITECTURE behavioral OF ddr3_memory IS
 
     CONSTANT NDATA : INTEGER := 4096;
     CONSTANT NACK : INTEGER := NDATA/2-1;
@@ -54,7 +54,7 @@ ARCHITECTURE behavioral OF dram IS
     CONSTANT AW : INTEGER :=RAMABITS-2;
     CONSTANT SELW : INTEGER := (WBDATAWIDTH/8);
     
-    COMPONENT dram_control IS
+    COMPONENT ddr3_control IS
     GENERIC( 
         AW : INTEGER;
         DDRWIDTH : INTEGER;
@@ -67,14 +67,14 @@ ARCHITECTURE behavioral OF dram IS
         rst : IN STD_LOGIC;    
         clk_81 : IN STD_LOGIC;        
         dout: OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
-        rd_trigger: IN STD_LOGIC; 
-        wr_trigger : OUT STD_LOGIC;
-        wr_trigger_ok : IN STD_LOGIC; 
-        wr_continue : IN STD_LOGIC;
-        wr_continue_ok : OUT STD_LOGIC;
-        i_buff_rd_en: OUT STD_LOGIC;
-        i_buff_empty: IN STD_LOGIC;
-        o_buff_wr_en: OUT STD_LOGIC;
+        hsk_rd0: IN STD_LOGIC; 
+        hsk_rd1 : OUT STD_LOGIC;
+        hsk_rd_ok1 : IN STD_LOGIC; 
+        hsk_wr1 : IN STD_LOGIC;
+        hsk_wr_ok1 : OUT STD_LOGIC;
+        buff_rd_en: OUT STD_LOGIC;
+        buff_empty: IN STD_LOGIC;
+        buff_wr_en: OUT STD_LOGIC;
         dram_rst : OUT STD_LOGIC;           
         dram_wb_cyc : OUT STD_LOGIC;
         dram_wb_stb : OUT STD_LOGIC;
@@ -82,8 +82,7 @@ ARCHITECTURE behavioral OF dram IS
         dram_wb_addr : OUT STD_LOGIC_VECTOR((AW-1) DOWNTO 0);        
         dram_wb_data : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
         dram_wb_ack : IN STD_LOGIC;
-        dram_wb_stall : IN STD_LOGIC;
-        dram_wb_err : IN STD_LOGIC     
+        dram_wb_stall : IN STD_LOGIC   
     );
     END COMPONENT;
 
@@ -130,13 +129,12 @@ ARCHITECTURE behavioral OF dram IS
     SIGNAL dram_wb_ack : STD_LOGIC := '0';
     SIGNAL dram_wb_stall : STD_LOGIC := '0'; 
     SIGNAL dram_wb_sel:  STD_LOGIC_VECTOR((SELW-1) DOWNTO 0) := (OTHERS => '1');
-    SIGNAL dram_wb_err : STD_LOGIC := '0';
     
     SIGNAL start : STD_LOGIC := '0';
     
 BEGIN
     
-    INST_DRAM_CONTROL : dram_control
+    INST_DDR3_CONTROL : ddr3_control
         GENERIC MAP( 
             AW => AW,
             DDRWIDTH => DDRWIDTH, 
@@ -149,14 +147,14 @@ BEGIN
             rst  => rst,       
             clk_81 => clk_81, 
             dout => dout,
-            rd_trigger => rd_trigger,
-            wr_trigger => wr_trigger,
-            wr_trigger_ok => wr_trigger_ok,  
-            wr_continue => wr_continue,
-            wr_continue_ok => wr_continue_ok,
-            i_buff_rd_en => i_buff_rd_en,
-            i_buff_empty => i_buff_empty,            
-            o_buff_wr_en => o_buff_wr_en,
+            hsk_rd0 => hsk_rd0,
+            hsk_rd1 => hsk_rd1,
+            hsk_rd_ok1 => hsk_rd_ok1,  
+            hsk_wr1 => hsk_wr1,
+            hsk_wr_ok1 => hsk_wr_ok1,
+            buff_rd_en => buff_rd_en,
+            buff_empty => buff_empty,            
+            buff_wr_en => buff_wr_en,
             dram_rst => dram_rst,           
             dram_wb_cyc => dram_wb_cyc,
             dram_wb_stb => dram_wb_stb,
@@ -164,11 +162,10 @@ BEGIN
             dram_wb_addr => dram_wb_addr,
             dram_wb_data => dram_wb_data,
             dram_wb_ack => dram_wb_ack,
-            dram_wb_stall => dram_wb_stall,
-            dram_wb_err => dram_wb_err 
+            dram_wb_stall => dram_wb_stall
         );
 
-    INST_MIG_SDRAM : mig_sdram
+    INST_MIG_DDR3 : mig_sdram
         PORT MAP(
             i_clk => clk_81,
             i_clk_200mhz => clk_200,
@@ -183,7 +180,7 @@ BEGIN
             o_sys_clk => OPEN,
             o_wb_ack => dram_wb_ack,
             o_wb_stall => dram_wb_stall,
-            o_wb_err => dram_wb_err,
+            o_wb_err => OPEN,
             o_ddr_reset_n => o_ddr_reset_n,
             o_ddr_ras_n => o_ddr_ras_n,
             o_ddr_cas_n => o_ddr_cas_n,
